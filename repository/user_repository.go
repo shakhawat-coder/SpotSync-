@@ -1,17 +1,16 @@
 package repository
 
 import (
-	"context"
+	"spotsync/models"
 
 	"gorm.io/gorm"
-
-	"spotsync/models"
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *models.User) error
-	FindByEmail(ctx context.Context, email string) (*models.User, error)
-	FindByID(ctx context.Context, id uint) (*models.User, error)
+	Create(user *models.User) error
+	GetByEmail(email string) (*models.User, error)
+	GetByID(id uint) (*models.User, error)
+	Update(user *models.User) error
 }
 
 type userRepository struct {
@@ -22,18 +21,38 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) Create(ctx context.Context, user *models.User) error {
-	return r.db.WithContext(ctx).Create(user).Error
+func (r *userRepository) Create(user *models.User) error {
+	if err := r.db.Create(user).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
-func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
-	return &user, err
+	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }
 
-func (r *userRepository) FindByID(ctx context.Context, id uint) (*models.User, error) {
+func (r *userRepository) GetByID(id uint) (*models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).First(&user, id).Error
-	return &user, err
+	if err := r.db.First(&user, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *userRepository) Update(user *models.User) error {
+	if err := r.db.Save(user).Error; err != nil {
+		return err
+	}
+	return nil
 }
