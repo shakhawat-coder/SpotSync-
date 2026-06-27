@@ -20,10 +20,11 @@ func SetupRoutes(cfg RouterConfig) {
 	e := cfg.Echo
 	jwt := middleware.JWTMiddleware(cfg.Config.JWTSecret)
 
-	e.GET("/health", func(c *echo.Context) error {
+	e.GET("/", func(c *echo.Context) error {
 		return c.JSON(200, map[string]interface{}{
-			"status":      "ok",
-			"environment": cfg.Config.Environment,
+			"message": "Welcome to SpotSync API",
+			"status":  "Server is running",
+			"version": "1.0.0",
 		})
 	})
 
@@ -44,7 +45,7 @@ func SetupRoutes(cfg RouterConfig) {
 		adminZones.Use(jwt)
 		adminZones.POST("", cfg.ZoneHandler.CreateZone)
 	}
- 
+
 	reservations := api.Group("/reservations")
 	reservations.Use(jwt)
 	{
