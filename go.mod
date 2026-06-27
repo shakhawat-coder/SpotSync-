@@ -3,6 +3,7 @@ module spotsync
 go 1.26.3
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/labstack/echo/v5 v5.2.1
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.2

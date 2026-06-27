@@ -1,0 +1,32 @@
+package dto
+
+import "time"
+
+type CreateZoneRequest struct {
+	Name          string  `json:"name" validate:"required,min=3,max=100"`
+	Type          string  `json:"type" validate:"required,oneof=general ev_charging covered"`
+	TotalCapacity int     `json:"total_capacity" validate:"required,gt=0"`
+	PricePerHour  float64 `json:"price_per_hour" validate:"required,gt=0"`
+}
+
+type ParkingZoneResponse struct {
+	ID             uint      `json:"id"`
+	Name           string    `json:"name"`
+	Type           string    `json:"type"`
+	TotalCapacity  int       `json:"total_capacity"`
+	AvailableSpots int       `json:"available_spots"`
+	PricePerHour   float64   `json:"price_per_hour"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type ZoneListResponse struct {
+	Success bool                  `json:"success"`
+	Message string                `json:"message"`
+	Data    []ParkingZoneResponse `json:"data"`
+}
+
+type ZoneSingleResponse struct {
+	Success bool                `json:"success"`
+	Message string              `json:"message"`
+	Data    ParkingZoneResponse `json:"data"`
+}
