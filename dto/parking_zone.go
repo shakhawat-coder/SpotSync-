@@ -9,7 +9,7 @@ type CreateZoneRequest struct {
 	PricePerHour  float64 `json:"price_per_hour" validate:"required,gt=0"`
 }
 
-type ParkingZoneResponse struct {
+type ParkingZoneListItem struct {
 	ID             uint      `json:"id"`
 	Name           string    `json:"name"`
 	Type           string    `json:"type"`
@@ -19,14 +19,12 @@ type ParkingZoneResponse struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-type ZoneListResponse struct {
-	Success bool                  `json:"success"`
-	Message string                `json:"message"`
-	Data    []ParkingZoneResponse `json:"data"`
-}
-
-type ZoneSingleResponse struct {
-	Success bool                `json:"success"`
-	Message string              `json:"message"`
-	Data    ParkingZoneResponse `json:"data"`
+type ParkingZoneDetail struct {
+	ID            uint      `json:"id"`
+	Name          string    `json:"name"`
+	Type          string    `json:"type"`
+	TotalCapacity int       `json:"total_capacity"`
+	PricePerHour  float64   `json:"price_per_hour"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }

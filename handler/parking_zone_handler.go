@@ -3,8 +3,6 @@ package handler
 import (
 	"net/http"
 	"spotsync/dto"
-	"spotsync/errors"
-	"spotsync/middleware"
 	"spotsync/service"
 	"strconv"
 
@@ -24,117 +22,48 @@ func NewParkingZoneHandler(zoneService service.ParkingZoneService, validator *va
 	}
 }
 
-// POST /api/v1/zones (Admin only)
 func (h *ParkingZoneHandler) CreateZone(c *echo.Context) error {
-	// Check admin role
-	role := middleware.GetRoleFromContext(c)
-	if role != "admin" {
-		return c.JSON(http.StatusForbidden, map[string]interface{}{
-			"success": false,
-			"message": errors.ErrForbidden.Message,
-			"errors":  "Admin access required",
-		})
+	if err := requireAdmin(c); err != nil {
+		return err
 	}
 
 	req := new(dto.CreateZoneRequest)
 	if err := c.Bind(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "Invalid request body",
-			"errors":  err.Error(),
-		})
+		return respondError(c, http.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	// Validate
 	if err := h.validator.Struct(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "Validation failed",
-			"errors":  err.Error(),
-		})
+		return respondError(c, http.StatusBadRequest, "Validation failed", err.Error())
 	}
 
 	zone, err := h.zoneService.CreateZone(req)
 	if err != nil {
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			return c.JSON(appErr.Status, map[string]interface{}{
-				"success": false,
-				"message": appErr.Message,
-				"errors":  appErr.Code,
-			})
-		}
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"success": false,
-			"message": "Failed to create zone",
-			"errors":  err.Error(),
-		})
+		return respondAppError(c, err, "Failed to create zone")
 	}
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
-		"success": true,
-		"message": "Parking zone created successfully",
-		"data":    zone,
-	})
+	return respondSuccess(c, http.StatusCreated, "Parking zone created successfully", zone)
 }
 
-// GET /api/v1/zones (Public)
 func (h *ParkingZoneHandler) GetAllZones(c *echo.Context) error {
 	zones, err := h.zoneService.GetAllZones()
 	if err != nil {
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			return c.JSON(appErr.Status, map[string]interface{}{
-				"success": false,
-				"message": appErr.Message,
-				"errors":  appErr.Code,
-			})
-		}
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"success": false,
-			"message": "Failed to fetch zones",
-			"errors":  err.Error(),
-		})
+		return respondAppError(c, err, "Failed to fetch zones")
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Parking zones retrieved successfully",
-		"data":    zones,
-	})
+	return respondSuccess(c, http.StatusOK, "Parking zones retrieved successfully", zones)
 }
 
-// GET /api/v1/zones/:id (Public)
 func (h *ParkingZoneHandler) GetZoneByID(c *echo.Context) error {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "Invalid zone ID",
-			"errors":  err.Error(),
-		})
+		return respondError(c, http.StatusBadRequest, "Invalid zone ID", err.Error())
 	}
 
 	zone, err := h.zoneService.GetZoneByID(uint(id))
 	if err != nil {
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			return c.JSON(appErr.Status, map[string]interface{}{
-				"success": false,
-				"message": appErr.Message,
-				"errors":  appErr.Code,
-			})
-		}
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"success": false,
-			"message": "Failed to fetch zone",
-			"errors":  err.Error(),
-		})
+		return respondAppError(c, err, "Failed to fetch zone")
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Parking zone retrieved successfully",
-		"data":    zone,
-	})
+	return respondSuccess(c, http.StatusOK, "Parking zone retrieved successfully", zone)
 }
+

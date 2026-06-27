@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"spotsync/dto"
 	"spotsync/errors"
+	"spotsync/middleware"
 	"spotsync/service"
 
 	"github.com/go-playground/validator/v10"
@@ -22,92 +23,45 @@ func NewAuthHandler(authService service.AuthService, validator *validator.Valida
 	}
 }
 
-// POST /api/v1/auth/register
 func (h *AuthHandler) Register(c *echo.Context) error {
 	req := new(dto.RegisterRequest)
 	if err := c.Bind(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "Invalid request body",
-			"errors":  err.Error(),
-		})
+		return respondError(c, http.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	// Validate request
 	if err := h.validator.Struct(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "Validation failed",
-			"errors":  err.Error(),
-		})
+		return respondError(c, http.StatusBadRequest, "Validation failed", err.Error())
 	}
 
-	// Call service
 	user, err := h.authService.Register(req)
 	if err != nil {
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			return c.JSON(appErr.Status, map[string]interface{}{
-				"success": false,
-				"message": appErr.Message,
-				"errors":  appErr.Code,
-			})
-		}
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"success": false,
-			"message": "Registration failed",
-			"errors":  err.Error(),
-		})
+		return respondAppError(c, err, "Registration failed")
 	}
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
-		"success": true,
-		"message": "User registered successfully",
-		"data":    user,
-	})
+	return respondSuccess(c, http.StatusCreated, "User registered successfully", user)
 }
 
-// POST /api/v1/auth/login
 func (h *AuthHandler) Login(c *echo.Context) error {
 	req := new(dto.LoginRequest)
 	if err := c.Bind(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "Invalid request body",
-			"errors":  err.Error(),
-		})
+		return respondError(c, http.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	// Validate request
 	if err := h.validator.Struct(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "Validation failed",
-			"errors":  err.Error(),
-		})
+		return respondError(c, http.StatusBadRequest, "Validation failed", err.Error())
 	}
 
-	// Call service
 	response, err := h.authService.Login(req)
 	if err != nil {
-		appErr, ok := err.(*errors.AppError)
-		if ok {
-			return c.JSON(appErr.Status, map[string]interface{}{
-				"success": false,
-				"message": appErr.Message,
-				"errors":  appErr.Code,
-			})
-		}
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"success": false,
-			"message": "Login failed",
-			"errors":  err.Error(),
-		})
+		return respondAppError(c, err, "Login failed")
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Login successful",
-		"data":    response,
-	})
+	return respondSuccess(c, http.StatusOK, "Login successful", response)
+}
+
+func requireAdmin(c *echo.Context) error {
+	if middleware.GetRoleFromContext(c) != "admin" {
+		return respondError(c, http.StatusForbidden, errors.ErrForbidden.Message, "Admin access required")
+	}
+	return nil
 }

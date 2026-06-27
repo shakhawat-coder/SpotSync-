@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"fmt"
+	"strings"
+
 	"spotsync/errors"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,7 +20,6 @@ type JWTClaims struct {
 func JWTMiddleware(secret string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
-			// Extract token from Authorization header
 			auth := c.Request().Header.Get("Authorization")
 			if auth == "" {
 				return c.JSON(401, map[string]any{
@@ -28,9 +29,8 @@ func JWTMiddleware(secret string) echo.MiddlewareFunc {
 				})
 			}
 
-			// Token format: "Bearer <token>"
-			token := auth[7:] // Remove "Bearer " prefix
-			if len(auth) < 8 {
+			const prefix = "Bearer "
+			if !strings.HasPrefix(auth, prefix) {
 				return c.JSON(401, map[string]any{
 					"success": false,
 					"message": errors.ErrUnauthorized.Message,
@@ -38,7 +38,15 @@ func JWTMiddleware(secret string) echo.MiddlewareFunc {
 				})
 			}
 
-			// Parse and verify JWT
+			token := strings.TrimSpace(auth[len(prefix):])
+			if token == "" {
+				return c.JSON(401, map[string]any{
+					"success": false,
+					"message": errors.ErrUnauthorized.Message,
+					"errors":  "Invalid token format",
+				})
+			}
+
 			claims := &JWTClaims{}
 			parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -55,7 +63,6 @@ func JWTMiddleware(secret string) echo.MiddlewareFunc {
 				})
 			}
 
-			// Inject claims into context
 			c.Set("user_id", claims.UserID)
 			c.Set("email", claims.Email)
 			c.Set("role", claims.Role)
@@ -65,7 +72,6 @@ func JWTMiddleware(secret string) echo.MiddlewareFunc {
 	}
 }
 
-// Helper to extract user_id from context
 func GetUserIDFromContext(c *echo.Context) uint {
 	if uid, ok := c.Get("user_id").(uint); ok {
 		return uid
@@ -73,7 +79,6 @@ func GetUserIDFromContext(c *echo.Context) uint {
 	return 0
 }
 
-// Helper to extract role from context
 func GetRoleFromContext(c *echo.Context) string {
 	if role, ok := c.Get("role").(string); ok {
 		return role

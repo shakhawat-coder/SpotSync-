@@ -8,6 +8,7 @@ import (
 	"spotsync/handler"
 	"spotsync/migrations"
 	"spotsync/repository"
+	"spotsync/routes"
 	"spotsync/service"
 
 	"github.com/go-playground/validator/v10"
@@ -35,17 +36,28 @@ func main() {
 	}
 	validate := validator.New()
 
+	// ═══════════════════════════════════════════════════════════════════════
+	// 🔌 DEPENDENCY INJECTION WIRING (Clean Architecture)
+	// ═══════════════════════════════════════════════════════════════════════
 
 	// Repositories: Data Access Layer
 	userRepo := repository.NewUserRepository(db)
-	
+	parkingZoneRepo := repository.NewParkingZoneRepository(db)
+	reservationRepo := repository.NewReservationRepository(db)
+
 	// Services: Business Logic Layer
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
-	
+	parkingZoneService := service.NewParkingZoneService(parkingZoneRepo)
+	reservationService := service.NewReservationService(reservationRepo, parkingZoneRepo)
 
 	// Handlers: HTTP Layer
 	authHandler := handler.NewAuthHandler(authService, validate)
-	
+	parkingZoneHandler := handler.NewParkingZoneHandler(parkingZoneService, validate)
+	reservationHandler := handler.NewReservationHandler(reservationService, validate)
+
+	// ═══════════════════════════════════════════════════════════════════════
+	// 🌐 ECHO SERVER SETUP
+	// ═══════════════════════════════════════════════════════════════════════
 
 	e := echo.New()
 
@@ -64,21 +76,12 @@ func main() {
 	// 🛣️ API ROUTES
 	// ═══════════════════════════════════════════════════════════════════════
 
-	// Auth routes (Public)
-	authGroup := e.Group("/api/v1/auth")
-	{
-		authGroup.POST("/register", authHandler.Register)
-		authGroup.POST("/login", authHandler.Login)
-	}
-
-	
-
-	// Health check endpoint
-	e.GET("/health", func(c *echo.Context) error {
-		return c.JSON(200, map[string]interface{}{
-			"status":      "ok",
-			"environment": cfg.Environment,
-		})
+	routes.SetupRoutes(routes.RouterConfig{
+		Echo:           e,
+		AuthHandler:    authHandler,
+		ZoneHandler:    parkingZoneHandler,
+		ReserveHandler: reservationHandler,
+		Config:         cfg,
 	})
 
 	// Start server

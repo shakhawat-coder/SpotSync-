@@ -6,7 +6,7 @@ type RegisterRequest struct {
 	Name     string `json:"name" validate:"required,min=3,max=100"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
-	Role     string `json:"role" validate:"required,oneof=driver admin"`
+	Role     string `json:"role" validate:"omitempty,oneof=driver admin"`
 }
 
 type LoginRequest struct {
@@ -23,7 +23,14 @@ type UserResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type LoginUserResponse struct {
+	ID    uint   `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
 type LoginResponse struct {
-	Token string       `json:"token"`
-	User  UserResponse `json:"user"`
+	Token string            `json:"token"`
+	User  LoginUserResponse `json:"user"`
 }
