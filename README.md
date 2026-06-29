@@ -23,8 +23,8 @@ SpotSync is a robust backend API built with Go to manage parking zones and reser
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/shakhawat-coder/SpotSync.git
-cd SpotSync
+git clone https://github.com/shakhawat-coder/SpotSync-.git
+cd SpotSync-
 ```
 
 ### 2. Install Dependencies
@@ -111,6 +111,14 @@ SpotSync follows Clean Architecture with clear layer separation:
 - ✅ HTTPS/SSL (Render auto-enabled)
 
 ---
+
+## JWT Token Errors
+
+```bash
+# Token expires in 24 hours
+# Generate new token: POST /api/v1/auth/login
+# Include in all requests: Authorization: Bearer <token>
+```
 
 ## 📂 Project Structure
 
